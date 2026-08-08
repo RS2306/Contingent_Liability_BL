@@ -933,14 +933,9 @@
 
             // ==================== DYNAMIC PWA SETUP (MANIFEST, ICONS, SERVICE WORKER) ====================
             
-            // 1. Generate App Icon (Base64 SVG)
-            const appIconSvg = `<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-                <rect width="512" height="512" rx="100" fill="#6a11cb"/>
-                <path d="M256 96c-35.3 0-64 28.7-64 64v32h-48c-26.5 0-48 21.5-48 48v224c0 26.5 21.5 48 48 48h224c26.5 0 48-21.5 48-48V240c0-26.5-21.5-48-48-48h-48v-32c0-35.3-28.7-64-64-64zm0 32c17.7 0 32 14.3 32 32v32h-64v-32c0-17.7 14.3-32 32-32zm-128 96h256v224H128V224z" fill="white"/>
-            </svg>`;
-            // Safely encode SVG to Base64
-            const b64Icon = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(appIconSvg)));
-            document.getElementById('apple-touch-icon').href = b64Icon;
+            // 1. Link to the uploaded GitHub image
+            const iconPath = 'logo.png';
+            document.getElementById('apple-touch-icon').href = iconPath;
 
             // 2. Generate and Inject Web Manifest dynamically
             const manifestObj = {
@@ -954,14 +949,14 @@
                 orientation: "portrait-primary",
                 icons: [
                     {
-                        src: b64Icon,
+                        src: iconPath,
                         sizes: "192x192",
-                        type: "image/svg+xml"
+                        type: "image/png"
                     },
                     {
-                        src: b64Icon,
+                        src: iconPath,
                         sizes: "512x512",
-                        type: "image/svg+xml"
+                        type: "image/png"
                     }
                 ]
             };
