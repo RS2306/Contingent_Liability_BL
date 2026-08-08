@@ -12,9 +12,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="BL Liability">
     
-    <!-- Standard Links to Manifest and Logo -->
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="logo.png">
+    <!-- Standard Links to Manifest and Logo with Cache Busting -->
+    <link rel="manifest" href="manifest.json?v=8">
+    <link rel="apple-touch-icon" href="logo.png?v=8">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -929,13 +929,23 @@
         (function() {
             'use strict';
 
-            console.log('🚀 Contingent Liability App v6.0 (Standard PWA) - Starting...');
+            console.log('🚀 Contingent Liability App v8.0 (Final Auto-Cleaning PWA) - Starting...');
 
             // ==================== PWA INSTALLATION & SERVICE WORKER REGISTRATION ====================
             
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('./sw.js').then(registration => {
+                    // Force unregister of older, potentially broken service workers
+                    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                        for(let registration of registrations) {
+                            if(!registration.active.scriptURL.includes('sw.js?v=8')) {
+                                registration.unregister();
+                            }
+                        }
+                    });
+
+                    // Register new service worker with cache-busting URL parameter
+                    navigator.serviceWorker.register('./sw.js?v=8').then(registration => {
                         console.log('✅ Service Worker Registered Successfully', registration);
                     }).catch(err => {
                         console.warn('⚠️ Service Worker Registration failed:', err);
