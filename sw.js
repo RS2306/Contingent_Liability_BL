@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bl-liability-app-v6';
+const CACHE_NAME = 'bl-liability-app-v7';
 const APP_URLS = [
     './index.html',
     './manifest.json',
