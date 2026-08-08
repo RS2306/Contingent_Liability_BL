@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contingent Liability App for Balmer Lawrie & Co Ltd</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#6a11cb">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="BL Liability">
+    
+    <!-- Dynamic Manifest and Apple Touch Icon (Will be injected via JS) -->
+    <link rel="manifest" id="manifest-link">
+    <link rel="apple-touch-icon" id="apple-touch-icon" href="">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            --secondary-gradient: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+            --submit-color: linear-gradient(45deg, #28a745, #218838);
+            --cancel-color: linear-gradient(45deg, #dc3545, #c82333);
+            --delete-color: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            --edit-color: linear-gradient(45deg, #f39c12, #e67e22);
+            --export-color: linear-gradient(45deg, #f39c12, #e67e22);
+            --text-color: #333;
+            --placeholder-color: #999;
+            --input-bg: #f5f8ff;
+            --border-radius-lg: 25px;
+            --border-radius-md: 15px;
+            --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: #f0f2f5;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            background: #fff;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--box-shadow);
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .app-header {
+            background: var(--primary-gradient);
+            color: #fff;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1em;
+            font-weight: 500;
+            border-top-left-radius: var(--border-radius-lg);
+            border-top-right-radius: var(--border-radius-lg);
+            position: relative;
+            z-index: 1;
+        }
+
+        .app-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.1' fill-rule='evenodd'%3E%3Cpath d='M0 60L60 0H0zM60 60V0z'/%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.15;
+            z-index: -1;
+            border-top-left-radius: var(--border-radius-lg);
+            border-top-right-radius: var(--border-radius-lg);
+        }
+
+        .header-left, .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-left i {
+            margin-right: 8px;
+            font-size: 1.2em;
+        }
+
+        .header-center {
+            flex-grow: 1;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .header-right i.fa-user-circle {
+            font-size: 1.5em;
+        }
+
+        /* PWA Install Button Styles */
+        .install-pwa-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            padding: 8px 16px;
+            border-radius: var(--border-radius-md);
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            display: flex; /* Always visible initially to act as a fallback */
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .install-pwa-btn:hover {
+            background: #fff;
+            color: #6a11cb;
+            transform: translateY(-2px);
+        }
+
+        .app-main {
+            padding: 25px 30px;
+        }
+
+        .tabs-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #eef2f9;
+            padding-bottom: 10px;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            padding: 12px 25px;
+            border: none;
+            background: #f5f8ff;
+            border-radius: var(--border-radius-md);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1em;
+            color: #666;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+        }
+
+        .tab-btn i {
+            font-size: 1.1em;
+        }
+
+        .tab-btn:hover {
+            background: #e4ebfb;
+            color: #333;
+        }
+
+        .tab-btn.active {
+            background: var(--primary-gradient);
+            color: #fff;
+            box-shadow: 0 5px 15px rgba(106, 17, 203, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .year-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .year-display {
+            background-color: var(--input-bg);
+            padding: 10px 15px;
+            border-radius: var(--border-radius-md);
+            font-weight: 500;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .year-display i {
+            color: #28a745;
+            margin-right: 8px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .add-new-btn {
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--border-radius-md);
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 500;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--secondary-gradient);
+            box-shadow: 0 5px 15px rgba(0, 114, 255, 0.3);
+        }
+
+        .add-new-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0, 114, 255, 0.4);
+        }
+
+        .liability-form {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            margin-bottom: 30px;
+            background: #fcfdff;
+            padding: 20px;
+            border-radius: var(--border-radius-lg);
+            border: 1px solid #e4ebfb;
+        }
+
+        .form-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 10px;
+            border-bottom: 2px dashed #e0e0e0;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background-color: var(--input-bg);
+            border-radius: var(--border-radius-md);
+            padding: 10px 15px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .form-group:focus-within {
+            border-color: #a7d9ff;
+            box-shadow: 0 0 0 3px rgba(0, 114, 255, 0.2), inset 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .form-group i {
+            color: var(--placeholder-color);
+            margin-right: 12px;
+            font-size: 1.1em;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            border: none;
+            background: transparent;
+            flex-grow: 1;
+            padding: 8px 0;
+            font-size: 1em;
+            color: var(--text-color);
+            outline: none;
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: var(--placeholder-color);
+        }
+
+        .form-group select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            cursor: pointer;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+            padding-top: 8px;
+        }
+
+        .form-group-half {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-group-half .form-group {
+            flex: 1;
+            margin: 0;
+        }
+
+        .form-group-triple {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-group-triple .form-group {
+            flex: 1;
+            margin: 0;
+        }
+
+        .form-group-file {
+            background-color: var(--input-bg);
+            border-radius: var(--border-radius-md);
+            padding: 15px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid transparent;
+        }
+
+        .file-upload-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .file-upload-header i {
+            margin-right: 12px;
+            color: var(--placeholder-color);
+            font-size: 1.1em;
+        }
+
+        .file-upload-header span {
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .upload-btn {
+            background: var(--secondary-gradient);
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: var(--border-radius-md);
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 3px 10px rgba(0, 114, 255, 0.2);
+            transition: background 0.2s ease;
+            border: none;
+        }
+
+        .upload-btn:hover {
+            background: linear-gradient(135deg, #00c6ff 0%, #0060d4 100%);
+        }
+
+        .file-list {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .file-item-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-color);
+            font-size: 0.9em;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .file-item-name i {
+            color: #dc3545;
+        }
+
+        .file-item-name span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-size {
+            font-size: 0.75em;
+            color: #666;
+            margin-left: 8px;
+        }
+
+        .remove-file-btn {
+            background: var(--delete-color);
+            color: #fff;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: transform 0.2s ease;
+        }
+
+        .remove-file-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-top: 25px;
+        }
+
+        .form-actions button {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            border-radius: var(--border-radius-lg);
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #fff;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .submit-btn {
+            background: var(--submit-color);
+            box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3);
+        }
+
+        .cancel-btn {
+            background: var(--cancel-color);
+            box-shadow: 0 8px 20px rgba(220, 53, 69, 0.3);
+        }
+
+        .submit-btn:hover, .cancel-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .report-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid #eee;
+        }
+
+        .report-section h2 {
+            font-size: 1.5em;
+            color: var(--text-color);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .table-info {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .export-section {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .export-excel-btn, .export-pdf-btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: var(--border-radius-md);
+            font-size: 0.95em;
+            font-weight: 500;
+            color: #fff;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .export-excel-btn {
+            background: linear-gradient(45deg, #217346, #1e8e4e);
+            box-shadow: 0 5px 15px rgba(33, 115, 70, 0.3);
+        }
+
+        .export-pdf-btn {
+            background: linear-gradient(45deg, #c0392b, #e74c3c);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        .export-excel-btn:hover, .export-pdf-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .report-table-container {
+            overflow-x: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: var(--border-radius-md);
+            margin-bottom: 20px;
+        }
+
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85em;
+        }
+
+        .report-table th, .report-table td {
+            border: 1px solid #e0e0e0;
+            padding: 10px 12px;
+            text-align: left;
+        }
+
+        .report-table th {
+            background-color: var(--input-bg);
+            font-weight: 600;
+            color: var(--text-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .report-table tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .report-table tbody tr:hover {
+            background-color: #eef5ff;
+        }
+
+        .report-table .file-link {
+            color: #0072ff;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-block;
+            margin-bottom: 3px;
+            cursor: pointer;
+        }
+
+        .report-table .file-link:hover {
+            text-decoration: underline;
+        }
+
+        .delete-btn, .edit-btn {
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 500;
+            transition: transform 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+
+        .delete-btn {
+            background: var(--delete-color);
+        }
+
+        .edit-btn {
+            background: var(--edit-color);
+        }
+
+        .delete-btn:hover, .edit-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .empty-report-message {
+            text-align: center;
+            color: var(--placeholder-color);
+            padding: 20px;
+            border: 1px dashed #e0e0e0;
+            border-radius: var(--border-radius-md);
+            margin-top: 20px;
+        }
+
+        .form-hidden {
+            display: none;
+        }
+
+        .help-text {
+            font-size: 0.75em;
+            color: #666;
+            margin-top: 3px;
+            font-style: italic;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        @media print {
+            .app-header, .tabs-container, .year-section, .liability-form, .export-section, .table-info, .data-management-container {
+                display: none;
+            }
+            .report-table-container {
+                border: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .app-container {
+                border-radius: 0;
+            }
+            .app-header {
+                border-radius: 0;
+                font-size: 0.9em;
+                padding: 15px;
+                flex-direction: column;
+                gap: 15px;
+            }
+            .header-center {
+                font-size: 0.85em;
+            }
+            .header-right {
+                width: 100%;
+                justify-content: flex-end;
+            }
+            .app-main {
+                padding: 20px;
+            }
+            .year-section {
+                flex-direction: column;
+                gap: 15px;
+            }
+            .form-group-half, .form-group-triple {
+                flex-direction: column;
+                gap: 18px;
+            }
+            .form-actions {
+                flex-direction: column;
+            }
+            .export-section {
+                flex-direction: column;
+            }
+            .tabs-container {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                padding-bottom: 15px;
+            }
+            .tab-btn {
+                font-size: 0.9em;
+                padding: 10px 15px;
+            }
+        }
+    
+        /* Export/Import Buttons */
+        .data-management-container {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            justify-content: flex-end;
+            padding: 0 20px;
+            flex-wrap: wrap;
+        }
+        .export-btn, .import-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: var(--border-radius-md);
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .export-btn { background: linear-gradient(45deg, #28a745, #218838); }
+        .export-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3); }
+        .import-btn { background: linear-gradient(45deg, #007bff, #0056b3); }
+        .import-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3); }
+        #importFileInput { display: none; }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-left">
+                <i class="fas fa-calendar-alt"></i>
+                <span id="currentDate"></span>
+            </div>
+            <div class="header-center">
+                Contingent Liability App for Balmer Lawrie & Co Ltd
+            </div>
+            <div class="header-right">
+                <!-- PWA Install Button -->
+                <button id="installPwaBtn" class="install-pwa-btn" title="Install App to Home Screen">
+                    <i class="fas fa-download"></i> Install App
+                </button>
+                <i class="fas fa-user-circle"></i>
+            </div>
+        </header>
+
+        <!-- Export/Import Buttons (Full Backup/Restore) -->
+        <div class="data-management-container">
+            <span style="margin-right:auto; color:#666; font-size:0.9em; align-self:center;">
+                <i class="fas fa-database"></i> Database Management & PWA Ready <i class="fas fa-check-circle" style="color:#28a745;"></i>
+            </span>
+            <button class="export-btn" id="exportDataBtn" title="Backup all Direct & Indirect records">
+                <i class="fas fa-download"></i> Backup All JSON
+            </button>
+            <input type="file" id="importFileInput" accept=".json" style="display: none;">
+            <button class="import-btn" id="importDataBtn" title="Restore records">
+                <i class="fas fa-upload"></i> Restore JSON
+            </button>
+        </div>
+
+        <main class="app-main">
+            
+            <!-- TABS NAVIGATION -->
+            <div class="tabs-container">
+                <button class="tab-btn active" data-tab="Indirect Taxes">
+                    <i class="fas fa-receipt"></i> Indirect Taxes Litigation
+                </button>
+                <button class="tab-btn" data-tab="Direct Taxes">
+                    <i class="fas fa-file-invoice-dollar"></i> Direct Taxes Litigation
+                </button>
+            </div>
+
+            <div class="year-section">
+                <div class="year-display">
+                    <i class="fas fa-check-circle"></i>
+                    <span id="currentYear"></span>
+                </div>
+                <div class="action-buttons">
+                    <button class="add-new-btn" id="addNewLiabilityBtn" type="button">
+                        <i class="fas fa-plus-circle"></i>
+                        <span id="addNewBtnText">Add New Indirect Liability</span>
+                    </button>
+                </div>
+            </div>
+
+            <form id="liabilityForm" class="liability-form form-hidden">
+                <div class="form-title" id="formTitleText">Add New Liability</div>
+                <input type="hidden" id="editRecordId" value="">
+                
+                <!-- This hidden field tracks which tab the record belongs to -->
+                <input type="hidden" id="taxCategory" value="Indirect Taxes">
+
+                <div class="form-group">
+                    <i class="fas fa-building"></i>
+                    <input type="text" id="divisionName" placeholder="Division Name" required>
+                </div>
+
+                <div class="form-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="personName" placeholder="Respective Person" required>
+                </div>
+
+                <div class="form-group-half">
+                    <div class="form-group">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="emailId" placeholder="Email ID" required>
+                    </div>
+                    <div class="form-group">
+                        <i class="fas fa-gavel"></i>
+                        <select id="taxType" required>
+                            <!-- Options injected dynamically based on active tab -->
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group-half">
+                    <div class="form-group">
+                        <i class="fas fa-coins"></i>
+                        <div style="flex: 1;">
+                            <input type="text" id="currentYearDemand" placeholder="Demand Current Year" required>
+                            <div class="help-text">Examples: Rs. 122.78 Lacs, 50 Crores, 2.5 Lakhs, 1500000</div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <i class="fas fa-coins"></i>
+                        <div style="flex: 1;">
+                            <input type="text" id="lastYearDemand" placeholder="Demand Last Year" required>
+                            <div class="help-text">Examples: Rs. 122.78 Lacs, 50 Crores, 2.5 Lakhs, 1500000</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group-triple">
+                    <div class="form-group">
+                        <i class="fas fa-calendar-check"></i>
+                        <select id="yearType" required>
+                            <option value="" disabled selected>Year Type</option>
+                            <option value="AY">Assessment Year (AY)</option>
+                            <option value="FY">Financial Year (FY)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <i class="fas fa-calendar"></i>
+                        <input type="text" id="yearRelatedTo" placeholder="e.g., 2023-24" required>
+                    </div>
+                    <div class="form-group">
+                        <i class="fas fa-landmark"></i>
+                        <input type="text" id="forumPending" placeholder="Forum Pending (e.g., CIT(A))" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <i class="fas fa-calendar-day"></i>
+                    <input type="text" id="lastHearingDate" placeholder="Last Hearing Date (e.g., 15-Dec-2025 or Next Month)">
+                </div>
+
+                <div class="form-group-file">
+                    <div class="file-upload-header">
+                        <i class="fas fa-file-upload"></i>
+                        <span>Upload Demand Orders (Multiple PDFs - Optional, No Size Limit)</span>
+                    </div>
+                    <input type="file" id="demandOrders" style="display: none;" accept=".pdf" multiple>
+                    <button type="button" class="upload-btn" id="uploadFileBtn">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        Choose Files
+                    </button>
+                    <div class="file-list" id="fileList"></div>
+                </div>
+
+                <div class="form-group">
+                    <i class="fas fa-comment-alt"></i>
+                    <textarea id="briefCaseHistory" placeholder="Brief Case History (Optional)"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="submit-btn">
+                        <i class="fas fa-save"></i>
+                        <span id="submitBtnText">Save Entry</span>
+                    </button>
+                    <button type="button" class="cancel-btn" id="cancelBtn">
+                        <i class="fas fa-times-circle"></i>
+                        Cancel
+                    </button>
+                </div>
+            </form>
+
+            <div class="report-section">
+                <h2 id="reportTitle">Indirect Taxes Contingent Liabilities</h2>
+                <div class="table-info">
+                    <i class="fas fa-info-circle"></i>
+                    Total <span id="currentCategoryText">Indirect</span> Records: <span id="recordCount">0</span>
+                </div>
+
+                <div class="export-section">
+                    <button class="export-excel-btn" id="exportExcelBtn">
+                        <i class="fas fa-file-excel"></i>
+                        Export Current Tab to Excel
+                    </button>
+                    <button class="export-pdf-btn" id="exportPdfBtn">
+                        <i class="fas fa-file-pdf"></i>
+                        Export Current Tab to PDF
+                    </button>
+                </div>
+
+                <div class="report-table-container" id="tableContainer">
+                    <table class="report-table" id="reportTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Division</th>
+                                <th>Person</th>
+                                <th>Email ID</th>
+                                <th>Tax Type</th>
+                                <th>Demand (CY)</th>
+                                <th>Demand (LY)</th>
+                                <th>Year Type</th>
+                                <th>Year</th>
+                                <th>Forum Pending</th>
+                                <th>Last Hearing Date</th>
+                                <th>Demand Orders</th>
+                                <th>Brief Case History</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="emptyMessage" class="empty-report-message" style="display: none;">
+                    <i class="fas fa-inbox" style="font-size: 2em; margin-bottom: 10px;"></i>
+                    <p>No <span id="emptyCategoryText">Indirect Tax</span> liabilities recorded yet. Click "Add New" to get started.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            console.log('🚀 Contingent Liability App v5.0 (PWA Enabled) - Starting...');
+
+            // ==================== DYNAMIC PWA SETUP (MANIFEST, ICONS, SERVICE WORKER) ====================
+            
+            // 1. Generate App Icon (Base64 SVG)
+            const appIconSvg = `<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+                <rect width="512" height="512" rx="100" fill="#6a11cb"/>
+                <path d="M256 96c-35.3 0-64 28.7-64 64v32h-48c-26.5 0-48 21.5-48 48v224c0 26.5 21.5 48 48 48h224c26.5 0 48-21.5 48-48V240c0-26.5-21.5-48-48-48h-48v-32c0-35.3-28.7-64-64-64zm0 32c17.7 0 32 14.3 32 32v32h-64v-32c0-17.7 14.3-32 32-32zm-128 96h256v224H128V224z" fill="white"/>
+            </svg>`;
+            // Safely encode SVG to Base64
+            const b64Icon = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(appIconSvg)));
+            document.getElementById('apple-touch-icon').href = b64Icon;
+
+            // 2. Generate and Inject Web Manifest dynamically
+            const manifestObj = {
+                name: "Contingent Liability App - Balmer Lawrie",
+                short_name: "BL Liability",
+                description: "Tax Contingency & Liability tracking app for Balmer Lawrie & Co Ltd.",
+                start_url: location.pathname || "/",
+                display: "standalone",
+                background_color: "#f0f2f5",
+                theme_color: "#6a11cb",
+                orientation: "portrait-primary",
+                icons: [
+                    {
+                        src: b64Icon,
+                        sizes: "192x192",
+                        type: "image/svg+xml"
+                    },
+                    {
+                        src: b64Icon,
+                        sizes: "512x512",
+                        type: "image/svg+xml"
+                    }
+                ]
+            };
+            const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
+            const manifestUrl = URL.createObjectURL(manifestBlob);
+            document.getElementById('manifest-link').href = manifestUrl;
+
+            // 3. Generate and Register Service Worker dynamically
+            // Note: Generating SWs via Blob URLs is restricted in some strict environments.
+            // If it fails, offline caching requires a physically hosted sw.js file.
+            const swCode = `
+                const CACHE_NAME = 'bl-liability-app-v5';
+                const APP_URLS = [
+                    '/',
+                    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css',
+                    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+                    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+                    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js',
+                    'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap'
+                ];
+
+                self.addEventListener('install', event => {
+                    event.waitUntil(
+                        caches.open(CACHE_NAME)
+                        .then(cache => cache.addAll(APP_URLS))
+                        .then(() => self.skipWaiting())
+                    );
+                });
+
+                self.addEventListener('activate', event => {
+                    event.waitUntil(
+                        caches.keys().then(keys => Promise.all(
+                            keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+                        ))
+                    );
+                    self.clients.claim();
+                });
+
+                self.addEventListener('fetch', event => {
+                    event.respondWith(
+                        caches.match(event.request).then(response => {
+                            if (response) return response;
+                            return fetch(event.request).then(networkResponse => {
+                                // Only cache GET requests
+                                if (event.request.method === 'GET' && event.request.url.startsWith('http')) {
+                                    const responseClone = networkResponse.clone();
+                                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
+                                }
+                                return networkResponse;
+                            }).catch(() => {
+                                // Offline fallback
+                                if (event.request.mode === 'navigate') {
+                                    return caches.match('/');
+                                }
+                            });
+                        })
+                    );
+                });
+            `;
+            
+            const swBlob = new Blob([swCode], { type: 'application/javascript' });
+            const swUrl = URL.createObjectURL(swBlob);
+
+            const isSecureContext = window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            
+            if ('serviceWorker' in navigator && isSecureContext) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register(swUrl).then(registration => {
+                        console.log('✅ PWA Service Worker Registered', registration);
+                    }).catch(err => {
+                        console.warn('⚠️ Service Worker Registration failed. This is expected if the browser blocks Blob SW URLs for security. To get full offline capabilities, please host a standard sw.js file.', err);
+                    });
+                });
+            } else {
+                console.warn('⚠️ Service Worker skipped. Requires HTTPS or localhost. Current protocol:', window.location.protocol);
+            }
+
+            // 4. Handle PWA Installation Prompt
+            let deferredPrompt;
+            const installPwaBtn = document.getElementById('installPwaBtn');
+
+            // Hide the button if the app is already installed and running in standalone mode
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || document.referrer.includes('android-app://');
+            if (isStandalone) {
+                installPwaBtn.style.display = 'none';
+            }
+
+            window.addEventListener('beforeinstallprompt', (e) => {
+                // Prevent the mini-infobar from appearing on mobile
+                e.preventDefault();
+                // Stash the event so it can be triggered later.
+                deferredPrompt = e;
+                console.log('📱 PWA native prompt is ready to be triggered');
+            });
+
+            installPwaBtn.addEventListener('click', async () => {
+                // Detect if running from a local file (e.g., WhatsApp content:// or file://)
+                const isLocalFile = window.location.protocol === 'file:' || window.location.protocol === 'content:' || !window.location.protocol.startsWith('http');
+
+                if (isLocalFile) {
+                    alert("⚠️ CANNOT INSTALL FROM LOCAL FILE\n\nYou are opening this app directly from a downloaded file or messaging app (like WhatsApp).\n\nFor security reasons, browsers require apps to be hosted on a secure web server (HTTPS) to be installed to your home screen.\n\nTo install this app:\nPlease upload this HTML file to a web server (e.g., Netlify, Vercel, or your company intranet) and open that web link instead.");
+                    return;
+                }
+
+                if (deferredPrompt) {
+                    // Use the native prompt if available (Usually Android / Desktop Chrome)
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        console.log('✅ User accepted the A2HS prompt');
+                        installPwaBtn.style.display = 'none';
+                    }
+                    deferredPrompt = null;
+                } else {
+                    // Fallback instructions for iOS and browsers blocking the native prompt
+                    const isIos = () => {
+                        const userAgent = window.navigator.userAgent.toLowerCase();
+                        return /iphone|ipad|ipod/.test(userAgent);
+                    };
+                    
+                    if (isIos()) {
+                        alert("To install this app on iOS:\n\n1. Tap the 'Share' icon at the bottom (or top) of your screen.\n2. Scroll down and tap 'Add to Home Screen'.");
+                    } else {
+                        alert("To install this app:\n\nTap your browser's menu (usually three dots at the top right) and select 'Add to Home screen' or 'Install app'.");
+                    }
+                }
+            });
+
+            // ==================== INDEXED DB ====================
+            let db = null;
+            const DBNAME = 'ContingentLiabilityDB';
+            const DBVERSION = 1;
+            const STORENAME = 'liabilities';
+
+            // ==================== APP STATE ====================
+            let allLiabilities = [];
+            let currentTabCategory = 'Indirect Taxes'; // Default Tab
+            let selectedFiles = [];
+            let editingRecordId = null;
+
+            // Define specific tax types per category
+            const taxOptions = {
+                'Indirect Taxes': ['GST', 'Customs', 'Excise', 'Service Tax', 'Sales Tax', 'VAT', 'Cess', 'Other'],
+                'Direct Taxes': ['Income Tax', 'Wealth Tax', 'TDS', 'TCS', 'Equalisation Levy', 'Other']
+            };
+
+            // ==================== INDEXED DB FUNCTIONS ====================
+
+            function initDB() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(DBNAME, DBVERSION);
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => {
+                        db = request.result;
+                        console.log('✅ IndexedDB ready');
+                        resolve(db);
+                    };
+                    request.onupgradeneeded = (event) => {
+                        db = event.target.result;
+                        if (!db.objectStoreNames.contains(STORENAME)) {
+                            db.createObjectStore(STORENAME, { keyPath: 'id' });
+                        }
+                    };
+                });
+            }
+
+            function saveLiability(liability) {
+                return new Promise((resolve, reject) => {
+                    if (!db) return reject(new Error('Database not initialized'));
+                    
+                    liability.id = String(liability.id);
+                    
+                    // Fallback migration
+                    if (liability.remarks && !liability.briefCaseHistory) {
+                        liability.briefCaseHistory = liability.remarks;
+                        delete liability.remarks;
+                    }
+                    if (!liability.category) {
+                        liability.category = 'Indirect Taxes'; // Retroactive default
+                    }
+
+                    const transaction = db.transaction([STORENAME], 'readwrite');
+                    const objectStore = transaction.objectStore(STORENAME);
+                    const request = objectStore.put(liability);
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            function getAllLiabilities() {
+                return new Promise((resolve, reject) => {
+                    if (!db) return reject(new Error('Database not initialized'));
+                    const transaction = db.transaction([STORENAME], 'readonly');
+                    const objectStore = transaction.objectStore(STORENAME);
+                    const request = objectStore.getAll();
+                    request.onsuccess = () => {
+                        const data = request.result.map(item => {
+                            item.id = String(item.id);
+                            if (item.remarks && !item.briefCaseHistory) {
+                                item.briefCaseHistory = item.remarks;
+                                delete item.remarks;
+                            }
+                            if (!item.category) {
+                                item.category = 'Indirect Taxes'; // Default legacy items
+                            }
+                            return item;
+                        });
+                        resolve(data);
+                    };
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            function deleteLiabilityFromDB(id) {
+                return new Promise((resolve, reject) => {
+                    if (!db) return reject(new Error('Database not initialized'));
+                    const transaction = db.transaction([STORENAME], 'readwrite');
+                    const objectStore = transaction.objectStore(STORENAME);
+                    const request = objectStore.delete(String(id));
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            function clearAllLiabilities() {
+                return new Promise((resolve, reject) => {
+                    if (!db) return reject(new Error('Database not initialized'));
+                    const transaction = db.transaction([STORENAME], 'readwrite');
+                    const objectStore = transaction.objectStore(STORENAME);
+                    const request = objectStore.clear();
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            // ==================== EXPORT/IMPORT ====================
+
+            async function exportAllData() {
+                try {
+                    const data = await getAllLiabilities();
+                    if (!data || data.length === 0) {
+                        alert('No data to export.');
+                        return;
+                    }
+                    const json = JSON.stringify(data, null, 2);
+                    const blob = new Blob([json], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'contingent_liabilities_FULL_BACKUP_' + new Date().toISOString().slice(0,10) + '.json';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    alert('✅ Full Backup Exported: ' + data.length + ' records!');
+                } catch (err) {
+                    alert('Export error: ' + err.message);
+                }
+            }
+
+            async function importAllData(file) {
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    try {
+                        const parsed = JSON.parse(e.target.result);
+                        if (!Array.isArray(parsed)) throw new Error('Invalid file format');
+
+                        const existing = await getAllLiabilities();
+                        let replace = true;
+                        if (existing.length > 0) {
+                            replace = confirm(
+                                'Current: ' + existing.length + ' records\n' +
+                                'Import: ' + parsed.length + ' records\n\n' +
+                                'OK = REPLACE all DB with import\nCancel = MERGE into DB'
+                            );
+                        }
+
+                        if (!replace) {
+                            for (let i = 0; i < parsed.length; i++) {
+                                parsed[i].id = 'import_' + Date.now() + '_' + i;
+                                if (!parsed[i].category) parsed[i].category = 'Indirect Taxes';
+                                await saveLiability(parsed[i]);
+                            }
+                            alert('✅ Merged ' + parsed.length + ' records!');
+                        } else {
+                            await clearAllLiabilities();
+                            for (const item of parsed) {
+                                item.id = String(item.id);
+                                if (!item.category) item.category = 'Indirect Taxes';
+                                await saveLiability(item);
+                            }
+                            alert('✅ Replaced & Imported ' + parsed.length + ' records!');
+                        }
+
+                        allLiabilities = await getAllLiabilities();
+                        renderTable();
+                    } catch (err) {
+                        alert('Import error: ' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            }
+
+            // ==================== HELPER FUNCTIONS ====================
+
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+            }
+
+            function updateDateTime() {
+                const now = new Date();
+                const dateOptions = { year: 'numeric', month: 'short', day: 'numeric' };
+                document.getElementById('currentDate').textContent = now.toLocaleDateString('en-IN', dateOptions);
+                document.getElementById('currentYear').textContent = now.getFullYear();
+            }
+
+            function toggleForm(show) {
+                const form = document.getElementById('liabilityForm');
+                if (show) {
+                    form.classList.remove('form-hidden');
+                    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    form.classList.add('form-hidden');
+                }
+            }
+
+            function updateTaxTypeDropdown(category) {
+                const select = document.getElementById('taxType');
+                select.innerHTML = '<option value="" disabled selected>Select Tax Type</option>';
+                const options = taxOptions[category] || taxOptions['Indirect Taxes'];
+                options.forEach(type => {
+                    select.innerHTML += `<option value="${type}">${type}</option>`;
+                });
+            }
+
+            function displayFileList() {
+                const fileListDiv = document.getElementById('fileList');
+                if (selectedFiles.length === 0) {
+                    fileListDiv.innerHTML = '';
+                    return;
+                }
+                fileListDiv.innerHTML = selectedFiles.map((file, index) => 
+                    '<div class="file-item">' +
+                        '<div class="file-item-name">' +
+                            '<i class="fas fa-file-pdf"></i>' +
+                            '<span>' + file.name + '</span>' +
+                            '<span class="file-size">' + formatFileSize(file.size) + '</span>' +
+                        '</div>' +
+                        '<button type="button" class="remove-file-btn" onclick="removeFile(' + index + ')">' +
+                            '<i class="fas fa-times"></i> Remove' +
+                        '</button>' +
+                    '</div>'
+                ).join('');
+            }
+
+            // ==================== TAB & RENDER LOGIC ====================
+
+            function switchTab(category) {
+                currentTabCategory = category;
+                
+                // Update active button state
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    if (btn.getAttribute('data-tab') === category) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+
+                // Update UI text
+                const shortCat = category === 'Indirect Taxes' ? 'Indirect' : 'Direct';
+                document.getElementById('reportTitle').textContent = `${category} Contingent Liabilities`;
+                document.getElementById('currentCategoryText').textContent = shortCat;
+                document.getElementById('emptyCategoryText').textContent = shortCat + ' Tax';
+                document.getElementById('addNewBtnText').textContent = `Add New ${shortCat} Liability`;
+                document.getElementById('taxCategory').value = category;
+
+                // Close form if open
+                toggleForm(false);
+
+                // Update dropdown options
+                updateTaxTypeDropdown(category);
+
+                renderTable();
+            }
+
+            function renderTable() {
+                const tbody = document.getElementById('reportBody');
+                const emptyMessage = document.getElementById('emptyMessage');
+                const tableContainer = document.getElementById('tableContainer');
+                const recordCount = document.getElementById('recordCount');
+
+                // Filter data based on current tab
+                const filteredLiabilities = allLiabilities.filter(item => item.category === currentTabCategory);
+
+                if (filteredLiabilities.length === 0) {
+                    tbody.innerHTML = '';
+                    emptyMessage.style.display = 'block';
+                    tableContainer.style.display = 'none';
+                    recordCount.textContent = 0;
+                    return;
+                }
+
+                emptyMessage.style.display = 'none';
+                tableContainer.style.display = 'block';
+                recordCount.textContent = filteredLiabilities.length;
+
+                const rows = filteredLiabilities.map((item, index) => {
+                    const filesHTML = item.files && item.files.length > 0
+                        ? item.files.map((file, fileIdx) => {
+                            const sizeInfo = file.size ? ' (' + formatFileSize(file.size) + ')' : '';
+                            return `<a href="javascript:void(0)" class="file-link" onclick="downloadFileByRef('${item.id}', ${fileIdx})">
+                                    <i class="fas fa-download"></i> ${file.name}${sizeInfo}</a><br>`;
+                          }).join('')
+                        : 'No files';
+
+                    return `<tr>
+                        <td>${index + 1}</td>
+                        <td>${item.division || ''}</td>
+                        <td>${item.person || ''}</td>
+                        <td>${item.email || ''}</td>
+                        <td>${item.taxType || ''}</td>
+                        <td>${item.demandCY || ''}</td>
+                        <td>${item.demandLY || ''}</td>
+                        <td>${item.yearType || ''}</td>
+                        <td>${item.year || ''}</td>
+                        <td>${item.forum || ''}</td>
+                        <td>${item.lastHearingDate || '-'}</td>
+                        <td>${filesHTML}</td>
+                        <td>${item.briefCaseHistory || '-'}</td>
+                        <td>
+                            <button class="edit-btn" onclick="editLiability('${item.id}')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="delete-btn" onclick="deleteLiability('${item.id}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </td>
+                    </tr>`;
+                });
+
+                tbody.innerHTML = rows.join('');
+            }
+
+
+            // ==================== GLOBAL ACTIONS ====================
+
+            window.removeFile = function(index) {
+                selectedFiles.splice(index, 1);
+                displayFileList();
+            };
+
+            window.editLiability = function(id) {
+                const liability = allLiabilities.find(item => String(item.id) === String(id));
+                if (!liability) return alert('Error: Record not found.');
+
+                editingRecordId = String(id);
+                document.getElementById('editRecordId').value = editingRecordId;
+                document.getElementById('submitBtnText').textContent = 'Update Entry';
+                
+                // Form title logic
+                const shortCat = liability.category === 'Indirect Taxes' ? 'Indirect' : 'Direct';
+                document.getElementById('formTitleText').innerHTML = `<i class="fas fa-edit"></i> Edit ${shortCat} Tax Liability`;
+
+                // Set proper dropdown options for this item's category before setting value
+                updateTaxTypeDropdown(liability.category || currentTabCategory);
+
+                // Populate fields
+                document.getElementById('taxCategory').value = liability.category || currentTabCategory;
+                document.getElementById('divisionName').value = liability.division || '';
+                document.getElementById('personName').value = liability.person || '';
+                document.getElementById('emailId').value = liability.email || '';
+                document.getElementById('taxType').value = liability.taxType || '';
+                document.getElementById('currentYearDemand').value = liability.demandCY || '';
+                document.getElementById('lastYearDemand').value = liability.demandLY || '';
+                document.getElementById('yearType').value = liability.yearType || '';
+                document.getElementById('yearRelatedTo').value = liability.year || '';
+                document.getElementById('forumPending').value = liability.forum || '';
+                document.getElementById('lastHearingDate').value = liability.lastHearingDate || '';
+                document.getElementById('briefCaseHistory').value = liability.briefCaseHistory || '';
+
+                selectedFiles = liability.files ? JSON.parse(JSON.stringify(liability.files)) : [];
+                displayFileList();
+
+                toggleForm(true);
+            };
+
+            window.deleteLiability = async function(id) {
+                if (!confirm('Delete this liability?\n\nThis action cannot be undone.')) return;
+                try {
+                    await deleteLiabilityFromDB(id);
+                    allLiabilities = await getAllLiabilities();
+                    renderTable();
+                } catch (error) {
+                    alert('Error deleting: ' + error.message);
+                }
+            };
+
+            window.downloadFileByRef = function(liabilityId, fileIndex) {
+                const liability = allLiabilities.find(item => String(item.id) === String(liabilityId));
+                if (!liability || !liability.files || !liability.files[fileIndex]) return alert('File not found.');
+                
+                const fileData = liability.files[fileIndex];
+                const link = document.createElement('a');
+                link.href = fileData.data;
+                link.download = fileData.name;
+                link.click();
+            };
+
+            // ==================== INITIALIZATION & EVENT LISTENERS ====================
+
+            document.addEventListener('DOMContentLoaded', async function () {
+                try {
+                    await initDB();
+                    allLiabilities = await getAllLiabilities();
+                    updateDateTime();
+                    
+                    // Setup Tabs
+                    document.querySelectorAll('.tab-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const category = e.currentTarget.getAttribute('data-tab');
+                            switchTab(category);
+                        });
+                    });
+
+                    // Initial render state
+                    switchTab('Indirect Taxes');
+                    setInterval(updateDateTime, 60000);
+
+                    // Add New Liability
+                    document.getElementById('addNewLiabilityBtn').addEventListener('click', function () {
+                        editingRecordId = null;
+                        document.getElementById('editRecordId').value = '';
+                        document.getElementById('submitBtnText').textContent = 'Save Entry';
+                        
+                        const shortCat = currentTabCategory === 'Indirect Taxes' ? 'Indirect' : 'Direct';
+                        document.getElementById('formTitleText').innerHTML = `<i class="fas fa-plus-circle"></i> Add New ${shortCat} Tax Liability`;
+                        document.getElementById('taxCategory').value = currentTabCategory;
+
+                        document.getElementById('liabilityForm').reset();
+                        updateTaxTypeDropdown(currentTabCategory); // reset dropdown specifically
+                        selectedFiles = [];
+                        displayFileList();
+                        toggleForm(true);
+                    });
+
+                    // Cancel
+                    document.getElementById('cancelBtn').addEventListener('click', function () {
+                        toggleForm(false);
+                        editingRecordId = null;
+                    });
+
+                    // Files
+                    const uploadBtn = document.getElementById('uploadFileBtn');
+                    const demandOrders = document.getElementById('demandOrders');
+                    uploadBtn.addEventListener('click', (e) => { e.preventDefault(); demandOrders.click(); });
+                    demandOrders.addEventListener('change', function(e) {
+                        Array.from(e.target.files).forEach(file => {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                                selectedFiles.push({ name: file.name, data: event.target.result, type: file.type, size: file.size });
+                                displayFileList();
+                            };
+                            reader.readAsDataURL(file);
+                        });
+                        e.target.value = '';
+                    });
+
+                    // Submit Form
+                    document.getElementById('liabilityForm').addEventListener('submit', async function(e) {
+                        e.preventDefault();
+                        const liability = {
+                            id: editingRecordId || String(Date.now()),
+                            category: document.getElementById('taxCategory').value,
+                            division: document.getElementById('divisionName').value,
+                            person: document.getElementById('personName').value,
+                            email: document.getElementById('emailId').value,
+                            taxType: document.getElementById('taxType').value,
+                            demandCY: document.getElementById('currentYearDemand').value,
+                            demandLY: document.getElementById('lastYearDemand').value,
+                            yearType: document.getElementById('yearType').value,
+                            year: document.getElementById('yearRelatedTo').value,
+                            forum: document.getElementById('forumPending').value,
+                            lastHearingDate: document.getElementById('lastHearingDate').value,
+                            files: [...selectedFiles],
+                            briefCaseHistory: document.getElementById('briefCaseHistory').value
+                        };
+
+                        try {
+                            await saveLiability(liability);
+                            allLiabilities = await getAllLiabilities();
+                            
+                            // If they edited a liability from a different tab, ensure we switch to its tab
+                            if (liability.category !== currentTabCategory) {
+                                switchTab(liability.category);
+                            } else {
+                                renderTable();
+                            }
+
+                            toggleForm(false);
+                            this.reset();
+                            selectedFiles = [];
+                            displayFileList();
+                            editingRecordId = null;
+                        } catch (error) {
+                            alert('Error saving: ' + error.message);
+                        }
+                    });
+
+                    // Database Backup & Restore
+                    document.getElementById('exportDataBtn').addEventListener('click', exportAllData);
+                    const importInput = document.getElementById('importFileInput');
+                    document.getElementById('importDataBtn').addEventListener('click', () => importInput.click());
+                    importInput.addEventListener('change', (e) => {
+                        if (e.target.files[0]) {
+                            importAllData(e.target.files[0]);
+                            e.target.value = '';
+                        }
+                    });
+
+                    // Export Excel (Current Tab)
+                    document.getElementById('exportExcelBtn').addEventListener('click', function () {
+                        const filtered = allLiabilities.filter(item => item.category === currentTabCategory);
+                        if (filtered.length === 0) return alert('No data to export for this tab!');
+                        
+                        const data = filtered.map((item, index) => ({
+                            'Sr. No.': index + 1,
+                            'Category': item.category,
+                            'Division': item.division,
+                            'Person': item.person,
+                            'Email ID': item.email,
+                            'Tax Type': item.taxType,
+                            'Demand CY': item.demandCY,
+                            'Demand LY': item.demandLY,
+                            'Year Type': item.yearType,
+                            'Year': item.year,
+                            'Forum': item.forum,
+                            'Last Hearing Date': item.lastHearingDate || '-',
+                            'Files': item.files ? item.files.length + ' files' : '0',
+                            'Brief Case History': item.briefCaseHistory || '-'
+                        }));
+                        const ws = XLSX.utils.json_to_sheet(data);
+                        const wb = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(wb, ws, currentTabCategory.replace(' ','_'));
+                        XLSX.writeFile(wb, `${currentTabCategory.replace(' ','_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
+                    });
+
+                    // Export PDF (Current Tab)
+                    document.getElementById('exportPdfBtn').addEventListener('click', function () {
+                        const filtered = allLiabilities.filter(item => item.category === currentTabCategory);
+                        if (filtered.length === 0) return alert('No data to export for this tab!');
+                        
+                        const { jsPDF } = window.jspdf;
+                        const doc = new jsPDF('l', 'mm', 'a4');
+                        doc.setFontSize(16);
+                        doc.text(`${currentTabCategory} Report`, 14, 15);
+                        doc.setFontSize(12);
+                        doc.text('Balmer Lawrie & Co Ltd', 14, 22);
+                        doc.setFontSize(9);
+                        doc.text('Generated: ' + new Date().toLocaleDateString('en-IN'), 14, 28);
+                        doc.text('Total Records: ' + filtered.length, 14, 33);
+
+                        const tableData = filtered.map((item, index) => [
+                            index + 1, item.division, item.person, item.taxType, item.demandCY,
+                            item.demandLY, item.yearType + ' ' + item.year, item.forum,
+                            item.lastHearingDate || '-', item.files ? item.files.length + ' files' : '0',
+                            (item.briefCaseHistory || '-').substring(0, 50)
+                        ]);
+
+                        doc.autoTable({
+                            head: [['#', 'Division', 'Person', 'Tax Type', 'Demand CY', 'Demand LY', 'Year', 'Forum', 'Last Hearing', 'Files', 'Case History']],
+                            body: tableData,
+                            startY: 38,
+                            styles: { fontSize: 6, cellPadding: 1.5 },
+                            headStyles: { fillColor: [106, 17, 203], fontSize: 7 },
+                            columnStyles: { 0: { cellWidth: 8 }, 4: { cellWidth: 18 }, 5: { cellWidth: 18 } }
+                        });
+
+                        doc.save(`${currentTabCategory.replace(' ','_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+                    });
+
+                } catch (error) {
+                    alert('Error initializing app: ' + error.message);
+                }
+            });
+
+        })();
+    </script>
+</body>
+</html>
