@@ -12,9 +12,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="BL Liability">
     
-    <!-- Dynamic Manifest and Apple Touch Icon (Will be injected via JS) -->
-    <link rel="manifest" id="manifest-link">
-    <link rel="apple-touch-icon" id="apple-touch-icon" href="">
+    <!-- Standard Links to Manifest and Logo -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="logo.png">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -122,7 +122,7 @@
             cursor: pointer;
             font-size: 0.9em;
             font-weight: 600;
-            display: flex; /* Always visible initially to act as a fallback */
+            display: flex;
             align-items: center;
             gap: 8px;
             transition: all 0.3s ease;
@@ -929,158 +929,50 @@
         (function() {
             'use strict';
 
-            console.log('🚀 Contingent Liability App v5.0 (PWA Enabled) - Starting...');
+            console.log('🚀 Contingent Liability App v6.0 (Standard PWA) - Starting...');
 
-            // ==================== DYNAMIC PWA SETUP (MANIFEST, ICONS, SERVICE WORKER) ====================
+            // ==================== PWA INSTALLATION & SERVICE WORKER REGISTRATION ====================
             
-            // 1. Link to the uploaded GitHub image
-            const iconPath = 'logo.png';
-            document.getElementById('apple-touch-icon').href = iconPath;
-
-            // 2. Generate and Inject Web Manifest dynamically
-            const manifestObj = {
-                name: "Contingent Liability App - Balmer Lawrie",
-                short_name: "BL Liability",
-                description: "Tax Contingency & Liability tracking app for Balmer Lawrie & Co Ltd.",
-                start_url: location.pathname || "/",
-                display: "standalone",
-                background_color: "#f0f2f5",
-                theme_color: "#6a11cb",
-                orientation: "portrait-primary",
-                icons: [
-                    {
-                        src: iconPath,
-                        sizes: "192x192",
-                        type: "image/png"
-                    },
-                    {
-                        src: iconPath,
-                        sizes: "512x512",
-                        type: "image/png"
-                    }
-                ]
-            };
-            const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
-            const manifestUrl = URL.createObjectURL(manifestBlob);
-            document.getElementById('manifest-link').href = manifestUrl;
-
-            // 3. Generate and Register Service Worker dynamically
-            // Note: Generating SWs via Blob URLs is restricted in some strict environments.
-            // If it fails, offline caching requires a physically hosted sw.js file.
-            const swCode = `
-                const CACHE_NAME = 'bl-liability-app-v5';
-                const APP_URLS = [
-                    '/',
-                    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css',
-                    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
-                    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-                    'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js',
-                    'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap'
-                ];
-
-                self.addEventListener('install', event => {
-                    event.waitUntil(
-                        caches.open(CACHE_NAME)
-                        .then(cache => cache.addAll(APP_URLS))
-                        .then(() => self.skipWaiting())
-                    );
-                });
-
-                self.addEventListener('activate', event => {
-                    event.waitUntil(
-                        caches.keys().then(keys => Promise.all(
-                            keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-                        ))
-                    );
-                    self.clients.claim();
-                });
-
-                self.addEventListener('fetch', event => {
-                    event.respondWith(
-                        caches.match(event.request).then(response => {
-                            if (response) return response;
-                            return fetch(event.request).then(networkResponse => {
-                                // Only cache GET requests
-                                if (event.request.method === 'GET' && event.request.url.startsWith('http')) {
-                                    const responseClone = networkResponse.clone();
-                                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
-                                }
-                                return networkResponse;
-                            }).catch(() => {
-                                // Offline fallback
-                                if (event.request.mode === 'navigate') {
-                                    return caches.match('/');
-                                }
-                            });
-                        })
-                    );
-                });
-            `;
-            
-            const swBlob = new Blob([swCode], { type: 'application/javascript' });
-            const swUrl = URL.createObjectURL(swBlob);
-
-            const isSecureContext = window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            
-            if ('serviceWorker' in navigator && isSecureContext) {
+            if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register(swUrl).then(registration => {
-                        console.log('✅ PWA Service Worker Registered', registration);
+                    navigator.serviceWorker.register('./sw.js').then(registration => {
+                        console.log('✅ Service Worker Registered Successfully', registration);
                     }).catch(err => {
-                        console.warn('⚠️ Service Worker Registration failed. This is expected if the browser blocks Blob SW URLs for security. To get full offline capabilities, please host a standard sw.js file.', err);
+                        console.warn('⚠️ Service Worker Registration failed:', err);
                     });
                 });
-            } else {
-                console.warn('⚠️ Service Worker skipped. Requires HTTPS or localhost. Current protocol:', window.location.protocol);
             }
 
-            // 4. Handle PWA Installation Prompt
             let deferredPrompt;
             const installPwaBtn = document.getElementById('installPwaBtn');
 
-            // Hide the button if the app is already installed and running in standalone mode
+            // Hide the button if the app is already installed
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || document.referrer.includes('android-app://');
             if (isStandalone) {
                 installPwaBtn.style.display = 'none';
             }
 
             window.addEventListener('beforeinstallprompt', (e) => {
-                // Prevent the mini-infobar from appearing on mobile
                 e.preventDefault();
-                // Stash the event so it can be triggered later.
                 deferredPrompt = e;
-                console.log('📱 PWA native prompt is ready to be triggered');
+                console.log('📱 PWA native prompt is ready');
             });
 
             installPwaBtn.addEventListener('click', async () => {
-                // Detect if running from a local file (e.g., WhatsApp content:// or file://)
-                const isLocalFile = window.location.protocol === 'file:' || window.location.protocol === 'content:' || !window.location.protocol.startsWith('http');
-
-                if (isLocalFile) {
-                    alert("⚠️ CANNOT INSTALL FROM LOCAL FILE\n\nYou are opening this app directly from a downloaded file or messaging app (like WhatsApp).\n\nFor security reasons, browsers require apps to be hosted on a secure web server (HTTPS) to be installed to your home screen.\n\nTo install this app:\nPlease upload this HTML file to a web server (e.g., Netlify, Vercel, or your company intranet) and open that web link instead.");
-                    return;
-                }
-
                 if (deferredPrompt) {
-                    // Use the native prompt if available (Usually Android / Desktop Chrome)
                     deferredPrompt.prompt();
                     const { outcome } = await deferredPrompt.userChoice;
                     if (outcome === 'accepted') {
-                        console.log('✅ User accepted the A2HS prompt');
+                        console.log('✅ User installed the app');
                         installPwaBtn.style.display = 'none';
                     }
                     deferredPrompt = null;
                 } else {
-                    // Fallback instructions for iOS and browsers blocking the native prompt
-                    const isIos = () => {
-                        const userAgent = window.navigator.userAgent.toLowerCase();
-                        return /iphone|ipad|ipod/.test(userAgent);
-                    };
-                    
+                    const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
                     if (isIos()) {
-                        alert("To install this app on iOS:\n\n1. Tap the 'Share' icon at the bottom (or top) of your screen.\n2. Scroll down and tap 'Add to Home Screen'.");
+                        alert("To install this app on iOS:\n\n1. Tap the 'Share' icon.\n2. Tap 'Add to Home Screen'.");
                     } else {
-                        alert("To install this app:\n\nTap your browser's menu (usually three dots at the top right) and select 'Add to Home screen' or 'Install app'.");
+                        alert("To install this app:\n\nTap your browser's menu (three dots) and select 'Add to Home screen' or 'Install app'.");
                     }
                 }
             });
@@ -1129,13 +1021,12 @@
                     
                     liability.id = String(liability.id);
                     
-                    // Fallback migration
                     if (liability.remarks && !liability.briefCaseHistory) {
                         liability.briefCaseHistory = liability.remarks;
                         delete liability.remarks;
                     }
                     if (!liability.category) {
-                        liability.category = 'Indirect Taxes'; // Retroactive default
+                        liability.category = 'Indirect Taxes'; 
                     }
 
                     const transaction = db.transaction([STORENAME], 'readwrite');
@@ -1160,7 +1051,7 @@
                                 delete item.remarks;
                             }
                             if (!item.category) {
-                                item.category = 'Indirect Taxes'; // Default legacy items
+                                item.category = 'Indirect Taxes';
                             }
                             return item;
                         });
@@ -1320,7 +1211,6 @@
             function switchTab(category) {
                 currentTabCategory = category;
                 
-                // Update active button state
                 document.querySelectorAll('.tab-btn').forEach(btn => {
                     if (btn.getAttribute('data-tab') === category) {
                         btn.classList.add('active');
@@ -1329,7 +1219,6 @@
                     }
                 });
 
-                // Update UI text
                 const shortCat = category === 'Indirect Taxes' ? 'Indirect' : 'Direct';
                 document.getElementById('reportTitle').textContent = `${category} Contingent Liabilities`;
                 document.getElementById('currentCategoryText').textContent = shortCat;
@@ -1337,12 +1226,8 @@
                 document.getElementById('addNewBtnText').textContent = `Add New ${shortCat} Liability`;
                 document.getElementById('taxCategory').value = category;
 
-                // Close form if open
                 toggleForm(false);
-
-                // Update dropdown options
                 updateTaxTypeDropdown(category);
-
                 renderTable();
             }
 
@@ -1352,7 +1237,6 @@
                 const tableContainer = document.getElementById('tableContainer');
                 const recordCount = document.getElementById('recordCount');
 
-                // Filter data based on current tab
                 const filteredLiabilities = allLiabilities.filter(item => item.category === currentTabCategory);
 
                 if (filteredLiabilities.length === 0) {
@@ -1404,7 +1288,6 @@
                 tbody.innerHTML = rows.join('');
             }
 
-
             // ==================== GLOBAL ACTIONS ====================
 
             window.removeFile = function(index) {
@@ -1420,14 +1303,11 @@
                 document.getElementById('editRecordId').value = editingRecordId;
                 document.getElementById('submitBtnText').textContent = 'Update Entry';
                 
-                // Form title logic
                 const shortCat = liability.category === 'Indirect Taxes' ? 'Indirect' : 'Direct';
                 document.getElementById('formTitleText').innerHTML = `<i class="fas fa-edit"></i> Edit ${shortCat} Tax Liability`;
 
-                // Set proper dropdown options for this item's category before setting value
                 updateTaxTypeDropdown(liability.category || currentTabCategory);
 
-                // Populate fields
                 document.getElementById('taxCategory').value = liability.category || currentTabCategory;
                 document.getElementById('divisionName').value = liability.division || '';
                 document.getElementById('personName').value = liability.person || '';
@@ -1477,7 +1357,6 @@
                     allLiabilities = await getAllLiabilities();
                     updateDateTime();
                     
-                    // Setup Tabs
                     document.querySelectorAll('.tab-btn').forEach(btn => {
                         btn.addEventListener('click', (e) => {
                             const category = e.currentTarget.getAttribute('data-tab');
@@ -1485,11 +1364,9 @@
                         });
                     });
 
-                    // Initial render state
                     switchTab('Indirect Taxes');
                     setInterval(updateDateTime, 60000);
 
-                    // Add New Liability
                     document.getElementById('addNewLiabilityBtn').addEventListener('click', function () {
                         editingRecordId = null;
                         document.getElementById('editRecordId').value = '';
@@ -1500,19 +1377,17 @@
                         document.getElementById('taxCategory').value = currentTabCategory;
 
                         document.getElementById('liabilityForm').reset();
-                        updateTaxTypeDropdown(currentTabCategory); // reset dropdown specifically
+                        updateTaxTypeDropdown(currentTabCategory); 
                         selectedFiles = [];
                         displayFileList();
                         toggleForm(true);
                     });
 
-                    // Cancel
                     document.getElementById('cancelBtn').addEventListener('click', function () {
                         toggleForm(false);
                         editingRecordId = null;
                     });
 
-                    // Files
                     const uploadBtn = document.getElementById('uploadFileBtn');
                     const demandOrders = document.getElementById('demandOrders');
                     uploadBtn.addEventListener('click', (e) => { e.preventDefault(); demandOrders.click(); });
@@ -1528,7 +1403,6 @@
                         e.target.value = '';
                     });
 
-                    // Submit Form
                     document.getElementById('liabilityForm').addEventListener('submit', async function(e) {
                         e.preventDefault();
                         const liability = {
@@ -1552,7 +1426,6 @@
                             await saveLiability(liability);
                             allLiabilities = await getAllLiabilities();
                             
-                            // If they edited a liability from a different tab, ensure we switch to its tab
                             if (liability.category !== currentTabCategory) {
                                 switchTab(liability.category);
                             } else {
@@ -1569,7 +1442,6 @@
                         }
                     });
 
-                    // Database Backup & Restore
                     document.getElementById('exportDataBtn').addEventListener('click', exportAllData);
                     const importInput = document.getElementById('importFileInput');
                     document.getElementById('importDataBtn').addEventListener('click', () => importInput.click());
@@ -1580,7 +1452,6 @@
                         }
                     });
 
-                    // Export Excel (Current Tab)
                     document.getElementById('exportExcelBtn').addEventListener('click', function () {
                         const filtered = allLiabilities.filter(item => item.category === currentTabCategory);
                         if (filtered.length === 0) return alert('No data to export for this tab!');
@@ -1607,7 +1478,6 @@
                         XLSX.writeFile(wb, `${currentTabCategory.replace(' ','_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
                     });
 
-                    // Export PDF (Current Tab)
                     document.getElementById('exportPdfBtn').addEventListener('click', function () {
                         const filtered = allLiabilities.filter(item => item.category === currentTabCategory);
                         if (filtered.length === 0) return alert('No data to export for this tab!');
